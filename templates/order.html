@@ -14,11 +14,25 @@
                        placeholder="Enter address" name="address">
                 <small id="emailHelp2" class="form-text text-muted">Enter your address here.</small>
             </div>
-            <div class="form-check form-check-inline">
+            <div class="card-columns form-group">
                 {% for foo in items %}
-                    <label for="{{ foo["item_name"] }}">{{ foo["item_name"] }}</label>
-                    <input type="number" max="{{ foo["item_count"] }}" class="form-control" id="{{ foo["item_name"] }}"
-                           placeholder="Enter quantity" name="items[]">
+                    <div class="card">
+                        <div class="card-body">
+                            {#                            <img class="card-img-top" src="" alt="Card image cap">#}
+                            <h5 class="card-title">{{ foo["item_name"] }}</h5>
+                            <div class="card-text">
+                                <label for="{{ foo["item_name"] }}">Enter Quantity</label>
+                                <input type="number" max="{{ foo["item_count"] }}" class="form-control"
+                                       id="{{ foo["item_name"] }}"
+                                       aria-describedby="{{ foo["item_name"] }}help"
+                                       name="item--{{ foo["item_name"] }}">
+                            </div>
+                            <div class="card-footer">
+                                <small class="text-muted">{{ foo["item_count"] }} items
+                                    available</small>
+                            </div>
+                        </div>
+                    </div>
                 {% endfor %}
             </div>
             <button type="submit" class="btn btn-primary">Submit</button>

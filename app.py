@@ -46,7 +46,7 @@ def show_products(item_name: str = None):
             body = connexion.request.get_json()
             item, status = get_obj_or_404(Item, item_name=body["item_name"])
             if status == 200:
-                item.update(item_count=item.item_count + body["item_count"])
+                item.update(item_count=item.item_count + int(body["item_count"]))
             else:
                 item = Item.from_json(json.dumps(body))
                 item.save()
@@ -129,7 +129,7 @@ def add_item():
 @app.route("/add_item", methods=["GET", "POST"])
 def order():
     if flask.request.method == "GET":
-        items = [dict(item_name=i["item_name"], item_count=i["item_count"]) for i in
+        items = [dict(item_name=i["item_name"], item_count=i["item_count"], description=i["description"]) for i in
                  requests.get(url_for("show_products", _external=True)).json()]
         return render_template("order.html", items=items)
 
