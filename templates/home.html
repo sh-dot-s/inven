@@ -1,0 +1,101 @@
+{% extends "index.html" %}
+{% block body %}
+    {% if items %}
+        <div class="card p-2 m-5">
+            <h5 class="card-title">Available Items</h5>
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        {% for foo in items[0].keys() %}
+                            <th scope="col">{{ foo|replace("_", " ")|capitalize|trim }}</th>
+                        {% endfor %}
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for item in items %}
+                        <tr>
+                            {% for key, bar in item.items() %}
+                                {% if key|string == "_id" %}
+                                    <td>{{ bar["$oid"] }}</td>
+                                {% elif key|string == "date_time" %}
+                                    <td>{{ bar["$date"]|format_date }}</td>
+                                {% else %}
+                                    <td>{{ bar }}</td>
+                                {% endif %}
+                            {% endfor %}
+                            <td>
+                                <button type="button"
+                                        onclick="window.location.href = '/update/item/{{ item._id["$oid"] }}';"
+                                        id="{{ item._id["$oid"] }}"
+                                        class="btn btn-outline-warning">Update
+                                </button>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="card p-2 m-5">
+            <h5 class="card-title">No Items Available</h5>
+        </div>
+    {% endif %}
+    {% if orders %}
+        <div class="card p-2 m-5">
+            <h5 class="card-title">Active Orders</h5>
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        {% for foo in orders[0].keys() %}
+                            <th scope="col">{{ foo|replace("_", " ")|capitalize|trim }}</th>
+                        {% endfor %}
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for item in orders %}
+                        <tr>
+                            {% for key, bar in item.items() %}
+                                {% if key|string == "_id" %}
+                                    <td>{{ bar["$oid"] }}</td>
+                                {% elif key|string == "items" %}
+                                    <td>
+                                        {% for i in bar %}
+                                            <button type="button" class="btn btn-primary m-1">
+                                                {{ i.item_name }} <span
+                                                    class="badge badge-light">{{ i.quantity }}</span>
+                                            </button>
+                                        {% endfor %}
+                                    </td>
+                                {% elif key|string == "category" or key|string == "missing_items" %}
+                                    <td>
+                                        {% for i in bar %}
+                                            <span class="badge badge-pill badge-primary">{{ i }}</span>
+                                        {% endfor %}
+                                    </td>
+                                {% else %}
+                                    <td>{{ bar }}</td>
+                                {% endif %}
+
+                            {% endfor %}
+                            <td>
+                                <button type="button"
+                                        onclick="window.location.href = '/update/order/{{ item._id["$oid"] }}';"
+                                        id="{{ item._id["$oid"] }}"
+                                        class="btn btn-outline-warning">Update
+                                </button>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="card p-2 m-5">
+            <h5 class="card-title">No Active Orders</h5>
+        </div>
+    {% endif %}
+{% endblock %}
