@@ -1,7 +1,7 @@
 {% extends "index.html" %}
 {% block body %}
     {% if items %}
-        <form class="m-5 p-5">
+        <form class="m-5 p-5" method="post" action="/place_order">
             <div class="form-group">
                 <label for="exampleInputEmail1">Name</label>
                 <input type="text" class="form-control" required id="exampleInputEmail1" aria-describedby="emailHelp1"
@@ -16,27 +16,31 @@
             </div>
             <div class="card-columns form-group">
                 {% for foo in items %}
-                    <div class="card">
+                    <div class="card border-light m-1" style="max-width: 10rem;">
                         <div class="card-body">
-                            {#                            <img class="card-img-top" src="" alt="Card image cap">#}
+                            <img class="card-img-top" src="data:image/png;base64, {{ foo["_id"]|get_image_bytes }}"
+                                 alt="Card image cap">
                             <h5 class="card-title">{{ foo["item_name"] }}</h5>
                             <div class="card-text">
-                                <label for="{{ foo["item_name"] }}">Enter Quantity</label>
+                                <label for="{{ foo["item_name"] }}"><small class="text-info">Enter
+                                    Quantity</small></label>
                                 <input type="number" max="{{ foo["item_count"] }}" class="form-control"
                                        id="{{ foo["item_name"] }}"
                                        aria-describedby="{{ foo["item_name"] }}help"
                                        name="item--{{ foo["item_name"] }}">
                             </div>
-                            <div class="card-footer">
-                                <small class="text-muted">{{ foo["item_count"] }} items
-                                    available</small>
-                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <small class="text-muted">{{ foo["item_count"] }} items
+                                available</small>
                         </div>
                     </div>
                 {% endfor %}
             </div>
             <button type="submit" class="btn btn-primary">Submit</button>
         </form>
+    {% elif message %}
+        <h4 class="p-5 m-5">{{ message }}</h4>
     {% else %}
         <h4 class="p-5 m-5">Add Items before ordering</h4>
     {% endif %}

@@ -1,3 +1,4 @@
+import base64
 import json
 from datetime import datetime
 
@@ -22,6 +23,11 @@ def format_date(value):
     return datetime.fromtimestamp(value).strftime("%A, %B %d, %Y %I:%M:%S")
 
 
+@app.template_filter()
+def get_image_bytes(value):
+    return base64.b64encode(Item.objects.get(pk=value).item_image.thumbnail.read()).decode("utf-8")
+
+
 def get_obj_or_404(klass, *args, **kwargs):
     kwargs["to_json"] = kwargs.get("to_json", False)
     to_json = kwargs.get("to_json")
@@ -42,29 +48,30 @@ def show_products(item_name: str = None):
     if flask.request.method == "GET":
         return Response(Item.objects().to_json(), mimetype="application/json", status=200)
     if flask.request.method == "POST":
-        if connexion.request.is_json:
-            body = connexion.request.get_json()
-            item, status = get_obj_or_404(Item, item_name=body["item_name"])
-            if status == 200:
-                item.update(item_count=item.item_count + int(body["item_count"]))
-            else:
-                item = Item.from_json(json.dumps(body))
-                item.save()
-            return Response(get_obj_or_404(Item, item_name=body["item_name"], to_json=True)[0],
-                            mimetype="application/json",
-                            status=200)
+        files = flask.request.files
+        body = flask.request.form
+        item, status = get_obj_or_404(Item, item_name=body["item_name"])
+        if status == 200:
+            item.update(item_count=item.item_count + int(body["item_count"]))
+        else:
+            item = Item.from_json(json.dumps(body))
+            item.item_image = files["item_image"]
+            item.save()
+        return Response(get_obj_or_404(Item, item_name=body["item_name"], to_json=True)[0],
+                        mimetype="application/json",
+                        status=200)
 
     if flask.request.method == "DELETE":
-        return Item.objects(item_name=item_name).delete(), 200
+        Item.objects(item_name=item_name).delete()
+        return Response(status=200)
 
     if flask.request.method == "PUT":
-        if connexion.request.is_json:
-            body = connexion.request.get_json()
-            item, status = get_obj_or_404(Item, item_name=item_name)
-            if status == 200:
-                item.update(**body)
-                item, status = get_obj_or_404(Item, item_name=item_name, to_json=True)
-            return Response(item, mimetype="application/json", status=status)
+        body = flask.request.form
+        item, status = get_obj_or_404(Item, item_name=item_name)
+        if status == 200:
+            item.update(**body)
+            item, status = get_obj_or_404(Item, item_name=item_name, to_json=True)
+        return Response(item, mimetype="application/json", status=status)
 
 
 @app.route("/order/", defaults={"order_id": None}, methods=["POST", "GET"])
@@ -109,29 +116,54 @@ def home():
                            orders=requests.get(url_for("order_item", _external=True)).json())
 
 
-@app.route("/place_order", methods=["GET", "POST"])
-def place_order():
+@app.route("/add_item", defaults={"item_id": None}, methods=["GET", "POST"])
+@app.route("/update/item/<string:item_id>", methods=["GET"])
+@app.route("/delete/item/<string:item_id>", methods=["GET"])
+def add_item(item_id):
     if flask.request.method == "GET":
-        items = [dict(item_name=i["item_name"], item_count=i["item_count"]) for i in
-                 requests.get(url_for("show_products", _external=True)).json()]
-        return render_template("order.html", items=items)
-
-
-@app.route("/add_item", methods=["GET", "POST"])
-def add_item():
-    if flask.request.method == "GET":
+        if item_id and "update" in flask.request.full_path:
+            return render_template("item.html", item=Item.objects.get(pk=item_id).to_json())
+        elif item_id and "delete" in flask.request.full_path:
+            requests.delete(url_for("show_products", _external=True) + item_id)
+            return flask.redirect(url_for("home"))
         return render_template("item.html")
     elif flask.request.method == "POST":
-        requests.post(url_for("show_products", _external=True), json=flask.request.form.to_dict())
+        args = [url_for("show_products", _external=True)]
+        kwargs = dict(data=flask.request.form.to_dict())
+        if flask.request.files:
+            requester = requests.post
+            kwargs.update({"files": {"item_image": flask.request.files["item_image"]}})
+        elif flask.request.form.get("hidden", False):
+            requester = requests.put
+            kwargs["data"].pop("hidden")
+            args[0] += kwargs["data"]["item_name"]
+        else:
+            requester = requests.post
+
+        requester(*args, **kwargs)
         return flask.redirect(url_for("home"))
 
 
-@app.route("/add_item", methods=["GET", "POST"])
-def order():
+@app.route("/place_order", methods=["GET", "POST"])
+def place_order():
     if flask.request.method == "GET":
-        items = [dict(item_name=i["item_name"], item_count=i["item_count"], description=i["description"]) for i in
+        items = [dict(item_name=i["item_name"], item_count=i["item_count"], description=i["description"],
+                      _id=i["_id"]["$oid"]) for i in
                  requests.get(url_for("show_products", _external=True)).json()]
         return render_template("order.html", items=items)
+    elif flask.request.method == "POST":
+        body = flask.request.form.to_dict()
+        parsed_body = dict(items=[])
+        for k, v in body.items():
+            if "item--" in k and v:
+                parsed_body["items"].append(dict(item_name=k.split("item--")[-1], quantity=int(v)))
+            else:
+                parsed_body.update({k: v})
+        if len(parsed_body["items"]) < 1:
+            return render_template("order.html", message="No Item selected. Please select an item and try again")
+        else:
+            requests.post(url_for("order_item", _external=True), json=parsed_body)
+        return flask.redirect(url_for("home"))
 
 
 if __name__ == "__main__":

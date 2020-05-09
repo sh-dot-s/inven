@@ -4,12 +4,13 @@
         <div class="card p-2 m-5">
             <h5 class="card-title">Available Items</h5>
             <div class="card-body">
-                <table class="table">
-                    <thead>
+                <table class="table table-striped table-hover">
+                    <thead class="thead-dark">
                     <tr>
                         {% for foo in items[0].keys() %}
                             <th scope="col">{{ foo|replace("_", " ")|capitalize|trim }}</th>
                         {% endfor %}
+                        <th>Actions</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -20,6 +21,9 @@
                                     <td>{{ bar["$oid"] }}</td>
                                 {% elif key|string == "date_time" %}
                                     <td>{{ bar["$date"]|format_date }}</td>
+                                {% elif key|string == "item_image" %}
+                                    <td><img src="data:image/png;base64, {{ item["_id"]["$oid"]|get_image_bytes }}"
+                                             alt=""></td>
                                 {% else %}
                                     <td>{{ bar }}</td>
                                 {% endif %}
@@ -27,8 +31,13 @@
                             <td>
                                 <button type="button"
                                         onclick="window.location.href = '/update/item/{{ item._id["$oid"] }}';"
-                                        id="{{ item._id["$oid"] }}"
-                                        class="btn btn-outline-warning">Update
+                                        id="upd{{ item._id["$oid"] }}"
+                                        class="btn btn-outline-warning m-1">Update
+                                </button>
+                                <button type="button"
+                                        onclick="window.location.href = '/delete/item/{{ item.item_name }}';"
+                                        id="del{{ item.item_name }}"
+                                        class="btn btn-outline-danger m-1">Delete
                                 </button>
                             </td>
                         </tr>
@@ -46,7 +55,7 @@
         <div class="card p-2 m-5">
             <h5 class="card-title">Active Orders</h5>
             <div class="card-body">
-                <table class="table">
+                <table class="table table-striped table-hover">
                     <thead>
                     <tr>
                         {% for foo in orders[0].keys() %}
@@ -80,13 +89,6 @@
                                 {% endif %}
 
                             {% endfor %}
-                            <td>
-                                <button type="button"
-                                        onclick="window.location.href = '/update/order/{{ item._id["$oid"] }}';"
-                                        id="{{ item._id["$oid"] }}"
-                                        class="btn btn-outline-warning">Update
-                                </button>
-                            </td>
                         </tr>
                     {% endfor %}
                     </tbody>
